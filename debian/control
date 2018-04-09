@@ -16,7 +16,7 @@ Standards-Version: 3.9.5
 Homepage: https://github.com/ubports/pulseaudio-modules-droid
 
 Package: pulseaudio-modules-droid2
-Architecture: armhf arm64 amd64
+Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
 Description: PulseAudio Droid HAL module. (JOLLA TEST VERSION)
