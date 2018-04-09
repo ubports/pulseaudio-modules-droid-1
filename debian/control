@@ -1,0 +1,28 @@
+Source: pulseaudio-modules-droid
+Section: sound
+Priority: optional
+Build-Depends: android-headers (>= 23),
+    debhelper (>= 9),
+    check,
+    dh-autoreconf,
+    dh-exec,
+    intltool,
+    pulseaudio-dev,
+    libpulse-dev,
+    libhardware-dev,
+    libdbus-1-dev
+Maintainer: Marius Gripsgard <marius@ubports.com>
+Standards-Version: 3.9.5
+Homepage: https://github.com/ubports/pulseaudio-modules-droid
+
+Package: pulseaudio-modules-droid2
+Architecture: armhf arm64 amd64
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: PulseAudio Droid HAL module. (JOLLA TEST VERSION)
+
+Package: pulseaudio-modules-droid-dev
+Architecture: all
+Depends: ${misc:Depends},
+         ${shlibs:Depends},
+Description: PulseAudio Droid HAL module development headers.
