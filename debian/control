@@ -27,4 +27,5 @@ Package: pulseaudio-modules-droid-dev
 Architecture: any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
+         pulseaudio-modules-droid2
 Description: PulseAudio Droid HAL module development headers.
