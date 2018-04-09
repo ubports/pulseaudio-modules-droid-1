@@ -1,0 +1,5 @@
+pulseaudio-modules-droid (0.1) xenial; urgency=medium
+
+  * Initial release.
+
+ -- Marius Gripsgard <marius@ubports.com>  Fri, 19 Jan 2018 07:39:13 +0100
