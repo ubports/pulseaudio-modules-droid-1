@@ -10,7 +10,8 @@ Build-Depends: android-headers (>= 23),
     pulseaudio-dev,
     libpulse-dev,
     libhardware-dev,
-    libdbus-1-dev
+    libdbus-1-dev,
+    libltdl-dev
 Maintainer: Marius Gripsgard <marius@ubports.com>
 Standards-Version: 3.9.5
 Homepage: https://github.com/ubports/pulseaudio-modules-droid
