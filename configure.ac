@@ -176,7 +176,7 @@ AC_SUBST(PULSEAUDIO_LIBS)
 
 #PKG_CHECK_MODULES([DROIDHEADERS], [android-headers >= 0.0.6])
 # android-headers.pc has broken version field
-PKG_CHECK_MODULES([DROIDHEADERS], [android-headers])
+PKG_CHECK_MODULES([DROIDHEADERS], [android-headers-24])
 AC_SUBST(DROIDHEADERS_CFLAGS)
 
 PKG_CHECK_MODULES([HYBRIS], [libhardware >= 0.1.0])
