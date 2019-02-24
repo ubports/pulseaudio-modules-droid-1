@@ -1,0 +1,11 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=@libdir@
+includedir=${prefix}/include
+libexecdir=@libexecdir@
+
+Name: libdroid-util-24
+Description: Common droid module building interface.
+Version: @PA_MODULE_VERSION@
+Libs: -L${prefix}/lib/pulse-@PA_MAJORMINOR@/modules -ldroid-util-24
+Cflags: -D_REENTRANT -I${includedir}/pulsecore/modules
