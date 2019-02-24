@@ -43,9 +43,14 @@
 #include <pulsecore/macro.h>
 #include <pulsecore/idxset.h>
 
+#include <droid/version.h>
 #include "keepalive.h"
 
-#include "module-droid-keepalive-symdef.h"
+#if ANDROID_VERSION_MAJOR == 7 && ANDROID_VERSION_MINOR == 1
+#include "module-droid-keepalive-24-symdef.h"
+#else
+#error Please add correct include for your "ANDROID_VERSION_*" combination
+#endif
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid keepalive. Send cpu wakeup heartbeat while streams are active.");
