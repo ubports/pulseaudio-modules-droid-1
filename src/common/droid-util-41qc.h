@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2013 Jolla Ltd.
  *
- * Contact: Juho Hämäläinen <juho.hamalainen@tieto.com>
+ * Contact: Juho Hämäläinen <juho.hamalainen@jolla.com>
  *
  * These PulseAudio Modules are free software; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General Public
@@ -28,6 +28,8 @@
 
 #include <hardware/audio.h>
 #include <hardware_legacy/audio_policy_conf.h>
+
+#include <pulse/channelmap.h>
 
 // PulseAudio value    -    Android value
 
@@ -211,6 +213,10 @@ struct string_conversion string_conversion_table_output_flag[] = {
     STRING_ENTRY(AUDIO_OUTPUT_FLAG_LPA),
     STRING_ENTRY(AUDIO_OUTPUT_FLAG_TUNNEL),
     STRING_ENTRY(AUDIO_OUTPUT_FLAG_VOIP_RX),
+    { 0, NULL }
+};
+
+struct string_conversion string_conversion_table_input_flag[] = {
     { 0, NULL }
 };
 

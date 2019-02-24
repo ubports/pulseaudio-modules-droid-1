@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
+ * Copyright (C) 2013-2018 Jolla Ltd.
  *
- * Contact: Juho Hämäläinen <juho.hamalainen@tieto.com>
+ * Contact: Juho Hämäläinen <juho.hamalainen@jolla.com>
  *
  * These PulseAudio Modules are free software; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General Public
@@ -56,7 +56,8 @@
 #include <pulsecore/core-subscribe.h>
 
 #include "droid-sink.h"
-#include "droid-util.h"
+#include <droid/droid-util.h>
+#include <droid/conversion.h>
 
 struct userdata {
     pa_core *core;
@@ -251,8 +252,8 @@ static int thread_write_silence(struct userdata *u) {
      * is multiples of buffer_size. Even if we don't write whole buffer size
      * here it's okay, as long as mute time isn't configured too strictly. */
 
-    p = pa_memblock_acquire(u->silence.memblock);
-    wrote = pa_droid_stream_write(u->stream, (const uint8_t *) p + u->silence.index, u->silence.length);
+    p = pa_memblock_acquire_chunk(&u->silence);
+    wrote = pa_droid_stream_write(u->stream, p, u->silence.length);
     pa_memblock_release(u->silence.memblock);
 
     u->write_time = pa_rtclock_now() - u->write_time;
@@ -276,8 +277,11 @@ static int thread_write(struct userdata *u) {
     u->write_time = pa_rtclock_now();
 
     for (;;) {
-        p = pa_memblock_acquire(c.memblock);
-        wrote = pa_droid_stream_write(u->stream, (const uint8_t *) p + c.index, c.length);
+        if (pa_droid_quirk(u->hw_module, QUIRK_OUTPUT_MAKE_WRITABLE))
+            pa_memchunk_make_writable(&c, c.length);
+
+        p = pa_memblock_acquire_chunk(&c);
+        wrote = pa_droid_stream_write(u->stream, p, c.length);
         pa_memblock_release(c.memblock);
 
         if (wrote < 0) {
@@ -1135,18 +1139,17 @@ pa_sink *pa_droid_sink_new(pa_module *m,
          * hw module ourself.
          *
          * First let's find out if hw module has already been opened, or if we need to
-         * do it ourself.
-         */
+         * do it ourself. */
         if (!(u->hw_module = pa_droid_hw_module_get(u->core, NULL, module_id))) {
-
             /* No hw module object in shared object db, let's open the module now. */
-
             if (!(config = pa_droid_config_load(ma)))
                 goto fail;
 
-            /* Ownership of config transfers to hw_module if opening of hw module succeeds. */
             if (!(u->hw_module = pa_droid_hw_module_get(u->core, config, module_id)))
                 goto fail;
+
+            pa_droid_config_free(config);
+            config = NULL;
         }
     }
 
@@ -1305,6 +1308,7 @@ pa_sink *pa_droid_sink_new(pa_module *m,
     return u->sink;
 
 fail:
+    pa_droid_config_free(config);
     pa_xfree(thread_name);
 
     if (config)

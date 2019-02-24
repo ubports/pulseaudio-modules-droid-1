@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
+ * Copyright (C) 2013-2018 Jolla Ltd.
  *
- * Contact: Juho Hämäläinen <juho.hamalainen@tieto.com>
+ * Contact: Juho Hämäläinen <juho.hamalainen@jolla.com>
  *
  * These PulseAudio Modules are free software; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General Public
@@ -59,7 +59,7 @@
 //#include <droid/hardware/audio_policy.h>
 //#include <droid/system/audio_policy.h>
 
-#include "droid-util.h"
+#include <droid/droid-util.h>
 #include "droid-sink.h"
 #include "droid-source.h"
 
@@ -129,6 +129,9 @@ static const char* const valid_modargs[] = {
 #define RINGTONE_PROFILE_DESC       "Ringtone mode"
 #define COMMUNICATION_PROFILE_NAME  "communication"
 #define COMMUNICATION_PROFILE_DESC  "Communication mode"
+
+#define VENDOR_EXT_REALCALL_ON      "realcall=on"
+#define VENDOR_EXT_REALCALL_OFF     "realcall=off"
 
 struct userdata;
 
@@ -428,8 +431,8 @@ static void park_profile(pa_droid_profile *dp) {
 }
 
 static bool voicecall_profile_event_cb(struct userdata *u, pa_droid_profile *p, bool enabling) {
-    pa_card_profile *cp;
-    pa_droid_mapping *am_output, *am_input;
+    pa_card_profile *cp = NULL;
+    pa_droid_mapping *am_output;
 
     pa_assert(u);
     pa_assert(p);
@@ -440,28 +443,27 @@ static bool voicecall_profile_event_cb(struct userdata *u, pa_droid_profile *p, 
         return false;
     }
 
-    if (!(am_input = pa_droid_idxset_get_primary(u->old_profile->input_mappings)))
-        pa_log_warn("Active profile doesn't have primary input device.");
+    if (pa_droid_idxset_mapping_with_device(u->old_profile->input_mappings,
+                                            AUDIO_DEVICE_IN_VOICE_CALL))
+        cp = pa_hashmap_get(u->card->profiles, VOICE_RECORD_PROFILE_NAME);
 
     /* call mode specialities */
     if (enabling) {
         pa_droid_sink_set_voice_control(am_output->sink, true);
-        if (am_input && am_input->input->devices & AUDIO_DEVICE_IN_VOICE_CALL &&
-            (cp = pa_hashmap_get(u->card->profiles, VOICE_RECORD_PROFILE_NAME))) {
-            if (cp->available == PA_AVAILABLE_NO) {
-                pa_log_debug("Enable %s profile.", VOICE_RECORD_PROFILE_NAME);
-                pa_card_profile_set_available(cp, PA_AVAILABLE_YES);
-            }
+        if (cp && cp->available == PA_AVAILABLE_NO) {
+            pa_log_debug("Enable " VOICE_RECORD_PROFILE_NAME " profile.");
+            pa_card_profile_set_available(cp, PA_AVAILABLE_YES);
         }
+        if (pa_droid_quirk(u->hw_module, QUIRK_REALCALL))
+            pa_droid_set_parameters(u->hw_module, VENDOR_EXT_REALCALL_ON);
     } else {
         pa_droid_sink_set_voice_control(am_output->sink, false);
-        if (am_input && am_input->input->devices & AUDIO_DEVICE_IN_VOICE_CALL &&
-            (cp = pa_hashmap_get(u->card->profiles, VOICE_RECORD_PROFILE_NAME))) {
-            if (cp->available == PA_AVAILABLE_YES) {
-                pa_log_debug("Disable %s profile.", VOICE_RECORD_PROFILE_NAME);
-                pa_card_profile_set_available(cp, PA_AVAILABLE_NO);
-            }
+        if (cp && cp->available == PA_AVAILABLE_YES) {
+            pa_log_debug("Disable " VOICE_RECORD_PROFILE_NAME " profile.");
+            pa_card_profile_set_available(cp, PA_AVAILABLE_NO);
         }
+        if (pa_droid_quirk(u->hw_module, QUIRK_REALCALL))
+            pa_droid_set_parameters(u->hw_module, VENDOR_EXT_REALCALL_OFF);
     }
 
     return true;
@@ -718,14 +720,21 @@ int pa__init(pa_module *m) {
     u->core = m->core;
     m->userdata = u;
 
-    if (!(config = pa_droid_config_load(ma)))
-        goto fail;
-
     module_id = pa_modargs_get_value(ma, "module_id", DEFAULT_MODULE_ID);
 
-    /* Ownership of config transfers to hw_module if opening of hw module succeeds. */
-    if (!(u->hw_module = pa_droid_hw_module_get(u->core, config, module_id)))
-        goto fail;
+    /* First let's find out if hw module has already been opened, or if we need to
+     * do it ourself. */
+    if (!(u->hw_module = pa_droid_hw_module_get(u->core, NULL, module_id))) {
+        /* No hw module object in shared object db, let's open the module now. */
+        if (!(config = pa_droid_config_load(ma)))
+            goto fail;
+
+        if (!(u->hw_module = pa_droid_hw_module_get(u->core, config, module_id)))
+            goto fail;
+
+        pa_droid_config_free(config);
+        config = NULL;
+    }
 
     if ((quirks = pa_modargs_get_value(ma, "quirks", NULL))) {
         if (!pa_droid_quirk_parse(u->hw_module, quirks)) {
@@ -821,11 +830,20 @@ int pa__init(pa_module *m) {
     u->modargs = ma;
     u->module = m;
 
+#if (PULSEAUDIO_VERSION >= 10)
+    pa_card_choose_initial_profile(u->card);
+#endif
     init_profile(u);
+
+#if (PULSEAUDIO_VERSION >= 10)
+    pa_card_put(u->card);
+#endif
 
     return 0;
 
 fail:
+    pa_droid_config_free(config);
+
     if (ma)
         pa_modargs_free(ma);
 

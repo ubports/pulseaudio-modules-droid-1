@@ -2,9 +2,9 @@
 #define foodroidsourcefoo
 
 /*
- * Copyright (C) 2013 Jolla Ltd.
+ * Copyright (C) 2013-2018 Jolla Ltd.
  *
- * Contact: Juho Hämäläinen <juho.hamalainen@tieto.com>
+ * Contact: Juho Hämäläinen <juho.hamalainen@jolla.com>
  *
  * These PulseAudio Modules are free software; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General Public
@@ -41,7 +41,7 @@
 #include <pulsecore/macro.h>
 #include <pulsecore/card.h>
 
-#include "droid-util.h"
+#include <droid/droid-util.h>
 
 /* If device is non-zero, it will override whatever is set in modargs for input device. */
 pa_source *pa_droid_source_new(pa_module *m,

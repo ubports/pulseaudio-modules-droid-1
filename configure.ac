@@ -174,8 +174,6 @@ PKG_CHECK_MODULES([PULSEAUDIO], [libpulse >= 5.0 pulsecore >= 5.0])
 AC_SUBST(PULSEAUDIO_CFLAGS)
 AC_SUBST(PULSEAUDIO_LIBS)
 
-pulseaudiodir=`pkg-config --variable=prefix pulsecore`
-
 #PKG_CHECK_MODULES([DROIDHEADERS], [android-headers >= 0.0.6])
 # android-headers.pc has broken version field
 PKG_CHECK_MODULES([DROIDHEADERS], [android-headers])
@@ -188,6 +186,25 @@ AC_SUBST(HYBRIS_LIBS)
 PKG_CHECK_MODULES([DBUS], [dbus-1 >= 1.2])
 AC_SUBST(DBUS_CFLAGS)
 AC_SUBST(DBUS_LIBS)
+
+#### expat (for xml config format parsing) (optional) ####
+
+AC_ARG_ENABLE([xml],
+    AS_HELP_STRING([--disable-xml],[Disable optional xml config support]))
+
+AS_IF([test "x$enable_xml" != "xno"],
+    [PKG_CHECK_MODULES(EXPAT, [ expat >= 2.1 ], HAVE_EXPAT=1, HAVE_EXPAT=0)],
+    HAVE_EXPAT=0)
+
+AS_IF([test "x$enable_xml" = "xyes" && test "x$HAVE_EXPAT" = "x0"],
+    [AC_MSG_ERROR([*** expat not found])])
+
+AC_SUBST(HAVE_EXPAT)
+AC_SUBST(EXPAT_CFLAGS)
+AC_SUBST(EXPAT_LIBS)
+AM_CONDITIONAL([HAVE_EXPAT], [test "x$HAVE_EXPAT" = x1])
+AS_IF([test "x$HAVE_EXPAT" = "x1"], AC_DEFINE([HAVE_EXPAT], 1, [Have expat?]))
+AS_IF([test "x$HAVE_EXPAT" = "x1"], ENABLE_XML="yes (expat)", ENABLE_XML=no)
 
 # Output devices
 CC_CHECK_DROID_ENUM([${DROIDHEADERS_CFLAGS}], [AUDIO_DEVICE_OUT_HDMI])
@@ -260,9 +277,10 @@ CC_CHECK_DROID_ENUM([${DROIDHEADERS_CFLAGS}], [AUDIO_FORMAT_PCM_OFFLOAD])
 CC_CHECK_DROID_ENUM([${DROIDHEADERS_CFLAGS}], [AUDIO_FORMAT_FLAC])
 CC_CHECK_DROID_ENUM([${DROIDHEADERS_CFLAGS}], [AUDIO_FORMAT_OPUS])
 
-AC_ARG_WITH([module-dir],
-        AS_HELP_STRING([--with-module-dir],[Directory where to install the modules to (defaults to ${pulseaudiodir}/lib/pulse-${PA_MAJORMINOR}/modules/]),
-        [modlibexecdir=$withval], [modlibexecdir="${pulseaudiodir}/lib/pulse-${PA_MAJORMINOR}/modules"])
+AC_ARG_WITH(
+        [module-dir],
+        AS_HELP_STRING([--with-module-dir],[Directory where to install the modules to (defaults to ${libdir}/pulse-${PA_MAJORMINOR}/modules]),
+        [modlibexecdir=$withval], [modlibexecdir="${libdir}/pulse-${PA_MAJORMINOR}/modules"])
 
 AC_SUBST(modlibexecdir)
 
@@ -276,6 +294,12 @@ AC_ARG_WITH([droid-device],
 if test "x$droiddevice" != x ; then
     DROID_DEVICE_CFLAGS="-DDROID_DEVICE_`echo $droiddevice | tr '[a-z]' '[A-Z]'`=1 -DDROID_DEVICE_STRING=\"\\\"$droiddevice\\\"\""
     AC_SUBST([DROID_DEVICE_CFLAGS])
+fi
+
+# Workaround for SBJ HAL headers
+if test "x$droiddevice" = xsbj ; then
+    SBJ_DEVICE_LDFLAGS="-Wl,--allow-multiple-definition"
+    AC_SUBST([SBJ_DEVICE_LDFLAGS])
 fi
 
 AC_MSG_CHECKING([If we are using hardfp tool chain])
@@ -308,8 +332,8 @@ echo "
     CFLAGS:                 ${CFLAGS}
 
     prefix:                 ${prefix}
-    PulseAudio prefix:      ${pulseaudiodir}
     modules directory:      ${modlibexecdir}
 
-    Droid device            ${droiddevice}
+    Droid device:           ${droiddevice}
+    XML config support:     ${ENABLE_XML}
     "

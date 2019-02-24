@@ -6,7 +6,7 @@
 Name:       pulseaudio-modules-droid-%{device}
 
 Summary:    PulseAudio Droid HAL modules
-Version:    %{pulsemajorminor}.64
+Version:    %{pulsemajorminor}.76
 Release:    1
 Group:      Multimedia/PulseAudio
 License:    LGPLv2.1+
@@ -48,17 +48,12 @@ This contains development files for PulseAudio droid modules.
 
 %build
 echo "%{moduleversion}" > .tarball-version
-%reconfigure --disable-static --with-droid-device=%{device}
+%reconfigure --disable-static --with-droid-device=%{device} --disable-xml
 make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
 %make_install
-
-install -d %{buildroot}/%{_prefix}/include/pulsecore/modules/droid
-install -m 644 src/common/*.h %{buildroot}/%{_prefix}/include/pulsecore/modules/droid
-install -d %{buildroot}/%{_libdir}/pkgconfig
-install -m 644 src/common/*.pc %{buildroot}/%{_libdir}/pkgconfig
 
 %files
 %defattr(-,root,root,-)
@@ -75,5 +70,9 @@ install -m 644 src/common/*.pc %{buildroot}/%{_libdir}/pkgconfig
 
 %files devel
 %defattr(-,root,root,-)
-%{_prefix}/include/pulsecore/modules/droid/*.h
+%dir %{_prefix}/include/pulsecore/modules/droid
+%{_prefix}/include/pulsecore/modules/droid/version.h
+%{_prefix}/include/pulsecore/modules/droid/conversion.h
+%{_prefix}/include/pulsecore/modules/droid/droid-config.h
+%{_prefix}/include/pulsecore/modules/droid/droid-util.h
 %{_libdir}/pkgconfig/*.pc

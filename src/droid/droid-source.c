@@ -1,7 +1,7 @@
 /*
- * Copyright (C) 2013 Jolla Ltd.
+ * Copyright (C) 2013-2018 Jolla Ltd.
  *
- * Contact: Juho Hämäläinen <juho.hamalainen@tieto.com>
+ * Contact: Juho Hämäläinen <juho.hamalainen@jolla.com>
  *
  * These PulseAudio Modules are free software; you can redistribute
  * it and/or modify it under the terms of the GNU Lesser General Public
@@ -53,7 +53,8 @@
 #include <pulsecore/resampler.h>
 
 #include "droid-source.h"
-#include "droid-util.h"
+#include <droid/droid-util.h>
+#include <droid/conversion.h>
 
 struct userdata {
     pa_core *core;
@@ -79,6 +80,7 @@ struct userdata {
     pa_droid_card_data *card_data;
     pa_droid_hw_module *hw_module;
     pa_droid_stream *stream;
+    bool stream_valid;
 };
 
 enum {
@@ -91,6 +93,8 @@ enum {
 #define DROID_AUDIO_SOURCE_UNDEFINED "undefined"
 
 static void userdata_free(struct userdata *u);
+static int suspend(struct userdata *u);
+static void unsuspend(struct userdata *u);
 
 static int do_routing(struct userdata *u, audio_devices_t devices) {
     int ret;
@@ -144,7 +148,21 @@ static int thread_read(struct userdata *u) {
     ssize_t readd;
     pa_memchunk chunk;
 
+    chunk.index = 0;
     chunk.memblock = pa_memblock_new(u->core->mempool, (size_t) u->buffer_size);
+
+    if (!u->stream_valid) {
+        /* try to resume or post silence */
+        unsuspend(u);
+        if (!u->stream_valid) {
+            p = pa_memblock_acquire(chunk.memblock);
+            chunk.length = pa_memblock_get_length(chunk.memblock);
+            memset(p, 0, chunk.length);
+            pa_source_post(u->source, &chunk);
+            pa_memblock_release(chunk.memblock);
+            goto end;
+        }
+    }
 
     p = pa_memblock_acquire(chunk.memblock);
     readd = pa_droid_stream_read(u->stream, p, pa_memblock_get_length(chunk.memblock));
@@ -157,7 +175,6 @@ static int thread_read(struct userdata *u) {
 
     u->timestamp += pa_bytes_to_usec(readd, &u->source->sample_spec);
 
-    chunk.index = 0;
     chunk.length = readd;
 
     if (u->resampler) {
@@ -250,8 +267,11 @@ static void unsuspend(struct userdata *u) {
     pa_assert(u);
     pa_assert(u->stream);
 
-    pa_droid_stream_suspend(u->stream, false);
-    pa_log_info("Resuming...");
+    if (pa_droid_stream_suspend(u->stream, false) >= 0) {
+        u->stream_valid = true;
+        pa_log_info("Resuming...");
+    } else
+        u->stream_valid = false;
 }
 
 /* Called from IO context */
@@ -264,9 +284,9 @@ static int source_process_msg(pa_msgobject *o, int code, void *data, int64_t off
 
             pa_assert(PA_SOURCE_IS_OPENED(u->source->thread_info.state));
 
-            pa_droid_stream_suspend(u->stream, true);
+            suspend(u);
             do_routing(u, device);
-            pa_droid_stream_suspend(u->stream, false);
+            unsuspend(u);
             break;
         }
 
@@ -564,6 +584,7 @@ pa_source *pa_droid_source_new(pa_module *m,
     }
 
     u = pa_xnew0(struct userdata, 1);
+    u->stream_valid = true;
     u->core = m->core;
     u->module = m;
     u->card = card;
@@ -575,15 +596,20 @@ pa_source *pa_droid_source_new(pa_module *m,
         u->card_data = card_data;
         pa_assert_se((u->hw_module = pa_droid_hw_module_get(u->core, NULL, card_data->module_id)));
     } else {
-        /* Stand-alone source */
-
+        /* Source wasn't created from inside card module, so we'll need to open
+         * hw module ourself.
+         *
+         * First let's find out if hw module has already been opened, or if we need to
+         * do it ourself. */
         if (!(u->hw_module = pa_droid_hw_module_get(u->core, NULL, module_id))) {
             if (!(config = pa_droid_config_load(ma)))
                 goto fail;
 
-            /* Ownership of config transfers to hw_module if opening of hw module succeeds. */
             if (!(u->hw_module = pa_droid_hw_module_get(u->core, config, module_id)))
                 goto fail;
+
+            pa_droid_config_free(config);
+            config = NULL;
         }
     }
 
@@ -699,10 +725,8 @@ pa_source *pa_droid_source_new(pa_module *m,
     return u->source;
 
 fail:
+    pa_droid_config_free(config);
     pa_xfree(thread_name);
-
-    if (config)
-        pa_xfree(config);
 
     if (u)
         userdata_free(u);
