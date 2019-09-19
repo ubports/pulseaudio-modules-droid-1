@@ -63,6 +63,7 @@
 #include <droid/sllist.h>
 #include "droid-sink.h"
 #include "droid-source.h"
+#include "droid-extcon.h"
 
 #if ANDROID_VERSION_MAJOR == 7 && ANDROID_VERSION_MINOR == 1
 #include "module-droid-card-24-symdef.h"
@@ -163,6 +164,8 @@ struct userdata {
     pa_droid_card_data card_data;
 
     pa_card_profile *real_profile;
+
+    pa_droid_extcon *extcon;
 
     pa_modargs *modargs;
     pa_card *card;
@@ -871,6 +874,8 @@ int pa__init(pa_module *m) {
 
     pa_card_choose_initial_profile(u->card);
     init_profile(u);
+    u->extcon = pa_droid_extcon_new(m->core, u->card);
+
     pa_card_put(u->card);
 
     return 0;
@@ -899,6 +904,8 @@ void pa__done(pa_module *m) {
         if (u->card && u->card->sources)
             pa_idxset_remove_all(u->card->sources, (pa_free_cb_t) pa_droid_source_free);
 
+        if (u->extcon)
+            pa_droid_extcon_free(u->extcon);
 
         if (u->card)
             pa_card_free(u->card);
