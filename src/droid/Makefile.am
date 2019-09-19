@@ -47,7 +47,7 @@ module_droid_source_24_la_LDFLAGS = -module -avoid-version -Wl,-z,noexecstack -l
 module_droid_source_24_la_LIBADD = -lm libdroid-source-24.la $(AM_LIBADD)
 module_droid_source_24_la_CFLAGS = $(AM_CFLAGS)
 
-module_droid_card_24_la_SOURCES = module-droid-card.c
-module_droid_card_24_la_LDFLAGS = -module -avoid-version -Wl,-z,noexecstack -lhybris-common
+module_droid_card_24_la_SOURCES = module-droid-card.c droid-extcon.c
+module_droid_card_24_la_LDFLAGS = -module -avoid-version -Wl,-z,noexecstack -lhybris-common -ludev
 module_droid_card_24_la_LIBADD = -lm libdroid-sink-24.la libdroid-source-24.la $(top_builddir)/src/common/libdroid-util-24.la $(AM_LIBADD)
 module_droid_card_24_la_CFLAGS = $(AM_CFLAGS)
