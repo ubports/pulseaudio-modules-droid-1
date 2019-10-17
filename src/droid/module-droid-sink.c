@@ -45,7 +45,8 @@
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid sink");
 PA_MODULE_USAGE("master_sink=<sink to connect to> "
-                "sink_name=<name of created sink>");
+                "sink_name=<name of created sink> "
+                "sco_fake_sink=<name of the fake sco sink used for hsp>");
 PA_MODULE_VERSION(PACKAGE_VERSION);
 
 static const char* const valid_modargs[] = {
@@ -60,6 +61,7 @@ static const char* const valid_modargs[] = {
     "deferred_volume",
     "voice_property_key",
     "voice_property_value",
+    "sco_fake_sink",
     NULL,
 };
 
