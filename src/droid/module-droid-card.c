@@ -86,6 +86,7 @@ PA_MODULE_USAGE(
         "config=<location for droid audio configuration> "
         "voice_property_key=<proplist key searched for sink-input that should control voice call volume> "
         "voice_property_value=<proplist value for the key for voice control sink-input> "
+        "voice_virtual_stream=<true/false> create virtual stream for voice call volume control (default false) "
         "default_profile=<boolean. create default profile for primary module or not. defaults to true> "
         "merge_inputs=<boolean. merge input streams to single source with default profile. defaults to true> "
         "quirks=<comma separated list of quirks to enable/disable>"
@@ -119,6 +120,7 @@ static const char* const valid_modargs[] = {
     "config",
     "voice_property_key",
     "voice_property_value",
+    "voice_virtual_stream",
     "default_profile",
     "combine",
     "quirks",
