@@ -187,6 +187,10 @@ PKG_CHECK_MODULES([DBUS], [dbus-1 >= 1.2])
 AC_SUBST(DBUS_CFLAGS)
 AC_SUBST(DBUS_LIBS)
 
+PKG_CHECK_MODULES([EVDEV], [libevdev >= 1.0])
+AC_SUBST(EVDEV_CFLAGS)
+AC_SUBST(EVDEV_LIBS)
+
 #### expat (for xml config format parsing) (optional) ####
 
 AC_ARG_ENABLE([xml],
