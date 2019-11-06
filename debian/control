@@ -13,6 +13,7 @@ Build-Depends: android-headers,
     libdbus-1-dev,
     libltdl-dev,
     libexpat-dev,
+    libevdev-dev,
     libhardware-dev,
     libhybris-common-dev,
     libudev-dev
