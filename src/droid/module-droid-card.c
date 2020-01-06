@@ -63,6 +63,7 @@
 #include "droid-sink.h"
 #include "droid-source.h"
 #include "droid-extcon.h"
+#include "droid-extevdev.h"
 
 #if ANDROID_VERSION_MAJOR == 7 && ANDROID_VERSION_MINOR == 1
 #include "module-droid-card-24-symdef.h"
@@ -166,6 +167,7 @@ struct userdata {
     pa_droid_profile *old_profile;
 
     pa_droid_extcon *extcon;
+    pa_droid_extevdev *extevdev;
 
     pa_modargs *modargs;
     pa_card *card;
@@ -846,6 +848,11 @@ int pa__init(pa_module *m) {
 
     u->extcon = pa_droid_extcon_new(m->core, u->card);
 
+    if (!u->extcon)
+        u->extevdev = pa_droid_extevdev_new(m->core, u->card);
+    else
+        u->extevdev = NULL;
+
 #if (PULSEAUDIO_VERSION >= 10)
     pa_card_put(u->card);
 #endif
@@ -878,6 +885,9 @@ void pa__done(pa_module *m) {
 
         if (u->extcon)
             pa_droid_extcon_free(u->extcon);
+
+        if (u->extevdev)
+            pa_droid_extevdev_free(u->extevdev);
 
         if (u->card)
             pa_card_free(u->card);
