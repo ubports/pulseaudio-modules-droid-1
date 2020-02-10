@@ -100,6 +100,7 @@ struct userdata {
     pa_droid_hw_module *hw_module;
     struct audio_stream_out *stream_out;
 
+    char *sco_fake_sink_name;
     struct pa_sink *sco_fake_sink;
 };
 
@@ -133,6 +134,7 @@ typedef struct droid_parameter_mapping {
 static void parameter_free(droid_parameter_mapping *m);
 static void userdata_free(struct userdata *u);
 static void set_voice_volume(struct userdata *u, pa_sink_input *i);
+static struct pa_sink *pa_sco_fake_sink_discover(pa_core *core, const char *sink_name);
 
 static void set_primary_devices(struct userdata *u, audio_devices_t devices) {
     pa_assert(u);
@@ -554,6 +556,10 @@ static int sink_set_port_cb(pa_sink *s, pa_device_port *p) {
     pa_log_debug("Sink set port %u", data->device);
 
     set_primary_devices(u, data->device);
+
+    /* See if the sco fake sink element is available (only when needed) */
+    if ((u->sco_fake_sink == NULL) && (data->device & AUDIO_DEVICE_OUT_ALL_SCO))
+        u->sco_fake_sink = pa_sco_fake_sink_discover(u->core, u->sco_fake_sink_name);
 
     /* Update the bluetooth hsp transport property before we do the routing */
     if (u->sco_fake_sink) {
@@ -988,7 +994,7 @@ pa_sink *pa_droid_sink_new(pa_module *m,
                                         NULL, (pa_free_cb_t) parameter_free);
     u->voice_property_key   = pa_xstrdup(pa_modargs_get_value(ma, "voice_property_key", DEFAULT_VOICE_CONTROL_PROPERTY_KEY));
     u->voice_property_value = pa_xstrdup(pa_modargs_get_value(ma, "voice_property_value", DEFAULT_VOICE_CONTROL_PROPERTY_VALUE));
-    u->sco_fake_sink = pa_sco_fake_sink_discover(u->core, pa_modargs_get_value(ma, "sco_fake_sink", DEFAULT_SCO_FAKE_SINK));
+    u->sco_fake_sink_name = pa_xstrdup(pa_modargs_get_value(ma, "sco_fake_sink", DEFAULT_SCO_FAKE_SINK));
     u->extra_devices_map = pa_hashmap_new(pa_idxset_trivial_hash_func, pa_idxset_trivial_compare_func);
 
     if (card_data) {
@@ -1275,6 +1281,9 @@ static void userdata_free(struct userdata *u) {
 
     if (u->hw_module)
         pa_droid_hw_module_unref(u->hw_module);
+
+    if (u->sco_fake_sink_name)
+        pa_xfree(u->sco_fake_sink_name);
 
     if (u->voice_property_key)
         pa_xfree(u->voice_property_key);
