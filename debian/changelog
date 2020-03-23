@@ -1,3 +1,10 @@
+pulseaudio-modules-droid (12.2.84) xenial; urgency=medium
+
+  * Import Mer upstream.
+  * Compile against android-headers-28 for Halium 9.
+
+ -- TheKit <nekit1000@gmail.com>  Mon, 23 Mar 2020 01:49:13 +0100
+
 pulseaudio-modules-droid (11.1.76) xenial; urgency=medium
 
   * Sync with Mer upstream.
