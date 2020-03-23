@@ -459,7 +459,11 @@ static void source_reconfigure(struct userdata *u,
         source_outputs = pa_source_move_all_start(u->source, NULL);
     }
 
+#if (PULSEAUDIO_VERSION >= 10)
     pa_source_suspend(u->source, true, PA_SUSPEND_UNAVAILABLE);
+#else
+    pa_source_suspend(u->source, true, PA_SUSPEND_INTERNAL);
+#endif
 
     old_channel_map = *pa_droid_stream_channel_map(u->stream);
     old_sample_spec = *pa_droid_stream_sample_spec(u->stream);
@@ -485,7 +489,12 @@ static void source_reconfigure(struct userdata *u,
     pa_assert_se(pa_cvolume_remap(&u->source->soft_volume, &old_channel_map, &new_channel_map));
 
     update_latency(u);
+
+#if (PULSEAUDIO_VERSION >= 10)
     pa_source_suspend(u->source, false, PA_SUSPEND_UNAVAILABLE);
+#else
+    pa_source_suspend(u->source, false, PA_SUSPEND_INTERNAL);
+#endif
 
     if (source_outputs && u->source) {
         pa_source_move_all_finish(u->source, source_outputs, false);

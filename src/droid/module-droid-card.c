@@ -876,7 +876,9 @@ int pa__init(pa_module *m) {
     u->modargs = ma;
     u->module = m;
 
+#if (PULSEAUDIO_VERSION >= 10)
     pa_card_choose_initial_profile(u->card);
+#endif
     init_profile(u);
     u->extcon = pa_droid_extcon_new(m->core, u->card);
 
@@ -885,7 +887,9 @@ int pa__init(pa_module *m) {
     else
         u->extevdev = NULL;
 
+#if (PULSEAUDIO_VERSION >= 10)
     pa_card_put(u->card);
+#endif
 
     return 0;
 
