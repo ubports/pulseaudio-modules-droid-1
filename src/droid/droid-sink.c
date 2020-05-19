@@ -108,6 +108,9 @@ struct userdata {
     pa_droid_card_data *card_data;
     pa_droid_hw_module *hw_module;
     pa_droid_stream *stream;
+
+    char *sco_fake_sink_name;
+    struct pa_sink *sco_fake_sink;
 };
 
 #define DEFAULT_MODULE_ID "primary"
@@ -129,9 +132,14 @@ typedef struct droid_parameter_mapping {
 #define DEFAULT_VOICE_CONTROL_PROPERTY_KEY      "media.role"
 #define DEFAULT_VOICE_CONTROL_PROPERTY_VALUE    "phone"
 
+/* Name of the fake sco sink used for HSP (used to set transport property) */
+#define DEFAULT_SCO_FAKE_SINK "sink.fake.sco"
+#define HSP_PREVENT_SUSPEND_STR "bluetooth.hsp.prevent.suspend.transport"
+
 static void parameter_free(droid_parameter_mapping *m);
 static void userdata_free(struct userdata *u);
 static void set_voice_volume(struct userdata *u, pa_sink_input *i);
+static struct pa_sink *pa_sco_fake_sink_discover(pa_core *core, const char *sink_name);
 
 static void set_primary_devices(struct userdata *u, audio_devices_t devices) {
     pa_assert(u);
@@ -198,6 +206,19 @@ static void clear_extra_devices(struct userdata *u) {
 
     pa_hashmap_remove_all(u->extra_devices_map);
     u->extra_devices = 0;
+}
+
+static void set_fake_sco_sink_transport_property(struct userdata *u, const char *value) {
+    pa_proplist *pl;
+
+    pa_assert(u);
+    pa_assert(value);
+    pa_assert(u->sco_fake_sink);
+
+    pl = pa_proplist_new();
+    pa_proplist_sets(pl, HSP_PREVENT_SUSPEND_STR, value);
+    pa_sink_update_proplist(u->sco_fake_sink, PA_UPDATE_REPLACE, pl);
+    pa_proplist_free(pl);
 }
 
 /* Called from main context during voice calls, and from IO context during media operation. */
@@ -542,6 +563,7 @@ static int sink_process_msg(pa_msgobject *o, int code, void *data, int64_t offse
 static int sink_set_port_cb(pa_sink *s, pa_device_port *p) {
     struct userdata *u = s->userdata;
     pa_droid_port_data *data;
+    const char *sco_transport_enabled;
 
     pa_assert(u);
     pa_assert(p);
@@ -559,6 +581,21 @@ static int sink_set_port_cb(pa_sink *s, pa_device_port *p) {
     pa_log_debug("Sink set port %u", data->device);
 
     set_primary_devices(u, data->device);
+
+    /* See if the sco fake sink element is available (only when needed) */
+    if ((u->sco_fake_sink == NULL) && (data->device & AUDIO_DEVICE_OUT_ALL_SCO))
+        u->sco_fake_sink = pa_sco_fake_sink_discover(u->core, u->sco_fake_sink_name);
+
+    /* Update the bluetooth hsp transport property before we do the routing */
+    if (u->sco_fake_sink) {
+        sco_transport_enabled = pa_proplist_gets(u->sco_fake_sink->proplist, HSP_PREVENT_SUSPEND_STR);
+        if (sco_transport_enabled && pa_streq(sco_transport_enabled, "true")) {
+            if (data->device & ~AUDIO_DEVICE_OUT_ALL_SCO)
+                set_fake_sco_sink_transport_property(u, "false");
+        } else if (data->device & AUDIO_DEVICE_OUT_ALL_SCO)
+            set_fake_sco_sink_transport_property(u, "true");
+    }
+
     do_routing(u);
 
     return 0;
@@ -1114,6 +1151,25 @@ error:
     return false;
 }
 
+static struct pa_sink *pa_sco_fake_sink_discover(pa_core *core, const char *sink_name) {
+    struct pa_sink *sink;
+    pa_idxset *idxset;
+    void *state = NULL;
+
+    pa_assert(core);
+    pa_assert(sink_name);
+    pa_assert_se((idxset = core->sinks));
+
+    while ((sink = pa_idxset_iterate(idxset, &state, NULL)) != NULL) {
+        if (pa_streq(sink_name, sink->name)) {
+            pa_log_debug("Found fake SCO sink '%s'", sink_name);
+            return sink;
+        }
+    }
+
+    return NULL;
+}
+
 pa_sink *pa_droid_sink_new(pa_module *m,
                              pa_modargs *ma,
                              const char *driver,
@@ -1230,6 +1286,7 @@ pa_sink *pa_droid_sink_new(pa_module *m,
     u->voice_virtual_stream = voice_virtual_stream;
     u->voice_property_key   = pa_xstrdup(pa_modargs_get_value(ma, "voice_property_key", DEFAULT_VOICE_CONTROL_PROPERTY_KEY));
     u->voice_property_value = pa_xstrdup(pa_modargs_get_value(ma, "voice_property_value", DEFAULT_VOICE_CONTROL_PROPERTY_VALUE));
+    u->sco_fake_sink_name = pa_xstrdup(pa_modargs_get_value(ma, "sco_fake_sink", DEFAULT_SCO_FAKE_SINK));
     u->extra_devices_map = pa_hashmap_new(pa_idxset_trivial_hash_func, pa_idxset_trivial_compare_func);
     u->mix_route = mix_route;
 
@@ -1498,6 +1555,9 @@ static void userdata_free(struct userdata *u) {
 
     if (u->hw_module)
         pa_droid_hw_module_unref(u->hw_module);
+
+    if (u->sco_fake_sink_name)
+        pa_xfree(u->sco_fake_sink_name);
 
     if (u->voice_property_key)
         pa_xfree(u->voice_property_key);
