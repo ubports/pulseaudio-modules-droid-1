@@ -174,9 +174,13 @@ PKG_CHECK_MODULES([PULSEAUDIO], [libpulse >= 5.0 pulsecore >= 5.0])
 AC_SUBST(PULSEAUDIO_CFLAGS)
 AC_SUBST(PULSEAUDIO_LIBS)
 
+AC_ARG_WITH([android-headers],
+        AS_HELP_STRING([--with-android-headers], [Allow specifying custom android headers package (default: android-headers)]),
+        [androidheaderspkg=$withval], [androidheaderspkg="android-headers"])
+
 #PKG_CHECK_MODULES([DROIDHEADERS], [android-headers >= 0.0.6])
 # android-headers.pc has broken version field
-PKG_CHECK_MODULES([DROIDHEADERS], [android-headers])
+PKG_CHECK_MODULES([DROIDHEADERS], [$androidheaderspkg])
 AC_SUBST(DROIDHEADERS_CFLAGS)
 
 PKG_CHECK_MODULES([HYBRIS], [libhardware >= 0.1.0])
@@ -315,11 +319,21 @@ if test "x$hardfp" = xyes ; then
     ENABLE_ARM_HARDFP=yes
 fi
 
+AC_ARG_WITH([module-suffix],
+        AS_HELP_STRING([--with-module-suffix], [Allow specifying suffixes to all modules and libraries. "-" will be included automatically. (default: none)]),
+        [modulesuffix="${withval}"], [modulesuffix=""])
+
+AS_IF([test "$modulesuffix" = ""],[
+    AC_SUBST([DROID_MODULE_SUFFIX], [""])
+], [
+    AC_SUBST([DROID_MODULE_SUFFIX], ["-${modulesuffix}"])
+])
+
 AC_CONFIG_FILES([
 Makefile
 src/Makefile
 src/common/Makefile
-src/common/libdroid-util.pc
+src/common/libdroid-util${DROID_MODULE_SUFFIX}.pc:src/common/libdroid-util.pc.in
 src/droid/Makefile
 ])
 
@@ -337,4 +351,5 @@ echo "
 
     Droid device:           ${droiddevice}
     XML config support:     ${ENABLE_XML}
+    Module suffix:          ${DROID_MODULE_SUFFIX}
     "
