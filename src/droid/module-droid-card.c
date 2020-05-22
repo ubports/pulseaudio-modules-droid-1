@@ -66,11 +66,7 @@
 #include "droid-extcon.h"
 #include "droid-extevdev.h"
 
-#if ANDROID_VERSION_MAJOR == 7 && ANDROID_VERSION_MINOR == 1
-#include "module-droid-card-24-symdef.h"
-#else
-#error Please add correct include for your "ANDROID_VERSION_*" combination
-#endif
+#include "module-droid-card-symdef.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid card");
