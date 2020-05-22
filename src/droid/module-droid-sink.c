@@ -41,8 +41,8 @@
 #include <droid/conversion.h>
 #include "droid-sink.h"
 
-#if ANDROID_VERSION_MAJOR == 9 && ANDROID_VERSION_MINOR == 0
-#include "module-droid-sink-28-symdef.h"
+#if ANDROID_VERSION_MAJOR == 7 && ANDROID_VERSION_MINOR == 1
+#include "module-droid-sink-24-symdef.h"
 #else
 #error Please add correct include for your "ANDROID_VERSION_*" combination
 #endif
