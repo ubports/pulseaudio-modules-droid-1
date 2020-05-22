@@ -18,18 +18,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
  * USA.
  */
-#ifndef foomoduledroidsourcesymdeffoo
-#define foomoduledroidsourcesymdeffoo
+#ifndef foomoduledroidkeepalivesymdeffoo
+#define foomoduledroidkeepalivesymdeffoo
 
 #include <pulsecore/core.h>
 #include <pulsecore/module.h>
 
-#define pa__init module_droid_source_28_LTX_pa__init
-#define pa__done module_droid_source_28_LTX_pa__done
-#define pa__get_author module_droid_source_28_LTX_pa__get_author
-#define pa__get_description module_droid_source_28_LTX_pa__get_description
-#define pa__get_usage module_droid_source_28_LTX_pa__get_usage
-#define pa__get_version module_droid_source_28_LTX_pa__get_version
+#define pa__init module_droid_keepalive_24_LTX_pa__init
+#define pa__done module_droid_keepalive_24_LTX_pa__done
+#define pa__get_author module_droid_keepalive_24_LTX_pa__get_author
+#define pa__get_description module_droid_keepalive_24_LTX_pa__get_description
+#define pa__get_usage module_droid_keepalive_24_LTX_pa__get_usage
+#define pa__get_version module_droid_keepalive_24_LTX_pa__get_version
 
 int pa__init(struct pa_module*m);
 void pa__done(struct pa_module*m);
