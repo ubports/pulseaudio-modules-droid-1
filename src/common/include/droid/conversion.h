@@ -37,8 +37,8 @@
 #define GAINS_TAG "gains"
 #endif
 
-#include <droid/version.h>
-#include <droid/droid-config.h>
+#include "version.h"
+#include "droid-config.h"
 
 typedef enum {
     CONV_FROM_PA,
