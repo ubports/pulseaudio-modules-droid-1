@@ -66,7 +66,7 @@
 #include "droid-extcon.h"
 #include "droid-extevdev.h"
 
-#include "module-droid-card-symdef.h"
+#include "module-symdef-compat.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid card");
