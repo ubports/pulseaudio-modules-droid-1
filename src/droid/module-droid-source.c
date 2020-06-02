@@ -40,7 +40,7 @@
 #include <droid/droid-util.h>
 #include "droid-source.h"
 
-#include "module-droid-source-symdef.h"
+#include "module-symdef-compat.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid source");

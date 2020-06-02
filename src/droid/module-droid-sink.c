@@ -41,7 +41,7 @@
 #include <droid/conversion.h>
 #include "droid-sink.h"
 
-#include "module-droid-sink-symdef.h"
+#include "module-symdef-compat.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid sink");
