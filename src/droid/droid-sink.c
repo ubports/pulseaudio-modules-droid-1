@@ -413,8 +413,12 @@ static void thread_func(void *userdata) {
                 thread_render(u);
                 thread_write(u);
 
-                if (u->write_time > u->write_threshold)
+                if (u->write_time > u->write_threshold) {
                     sleept = u->buffer_time;
+                    pa_log_debug("%" PRIu64 " is write_time", u->write_time);
+                    pa_log_debug("%" PRIu64 " is write_threshold", u->write_threshold);
+                    pa_log_debug("%" PRIu64 " is buffer_time", u->buffer_time);
+                }
 
                 pa_rtpoll_set_timer_relative(u->rtpoll, sleept);
             }
