@@ -113,7 +113,6 @@ static struct libevdev *find_switch_evdev(void) {
  * become available, so the last port available will stay active. */
 
 static const char *headphone_ports[] = {
-    "output-speaker+wired_headphone",
     "output-wired_headphone",
 };
 
