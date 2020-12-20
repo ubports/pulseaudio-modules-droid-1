@@ -40,8 +40,8 @@
 #include <droid/droid-util.h>
 #include "droid-source.h"
 
-#if ANDROID_VERSION_MAJOR == 9 && ANDROID_VERSION_MINOR == 0
-#include "module-droid-source-28-symdef.h"
+#if ANDROID_VERSION_MAJOR == 10 && ANDROID_VERSION_MINOR == 0
+#include "module-droid-source-29-symdef.h"
 #else
 #error Please add correct include for your "ANDROID_VERSION_*" combination
 #endif
