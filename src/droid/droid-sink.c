@@ -666,10 +666,9 @@ static void update_volumes(struct userdata *u) {
         pa_log_debug("Using %s volume control with %s",
                      u->use_hw_volume ? "hardware" : "software", u->sink->name);
     }
-    if (u->use_hw_voice_volume) {
-        pa_log_debug("Using %s voice volume control with %s",
-                     u->use_hw_voice_volume ? "hardware" : "software", u->sink->name);
-    }
+
+    pa_log_debug("Using %s voice volume control with %s",
+                 u->use_hw_voice_volume ? "hardware" : "software", u->sink->name);
 
     if (u->use_hw_volume)
         pa_sink_set_set_volume_callback(u->sink, sink_set_volume_cb);
