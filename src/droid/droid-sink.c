@@ -92,6 +92,7 @@ struct userdata {
 
     bool use_hw_volume;
     bool use_voice_volume;
+    bool use_hw_voice_volume;
     bool voice_virtual_stream;
     char *voice_property_key;
     char *voice_property_value;
@@ -641,9 +642,19 @@ static void update_volumes(struct userdata *u) {
         ret = u->stream->output->stream->set_volume(u->stream->output->stream, 1.0f, 1.0f);
         pa_log_debug("Probe hw volume support for %s (ret %d)", u->sink->name, ret);
     }
+    u->use_hw_volume = (ret == 0);
+
+    ret = -1;
+    if (u->hw_module->device->set_voice_volume && u->hw_module->device->set_mode) {
+        u->hw_module->device->set_mode(u->hw_module->device, AUDIO_MODE_IN_CALL);
+        ret = u->hw_module->device->set_voice_volume(u->hw_module->device, 1.0f);
+        u->hw_module->device->set_mode(u->hw_module->device, AUDIO_MODE_NORMAL);
+        pa_log_debug("Probe hw voice volume support for %s (ret %d)", u->sink->name, ret);
+    }
+    u->use_hw_voice_volume = (ret == 0);
     pa_droid_hw_module_unlock(u->hw_module);
 
-    u->use_hw_volume = (ret == 0);
+
     if (u->use_hw_volume &&
 #if defined(HAVE_ENUM_AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD)
         !(u->stream->output->flags & AUDIO_OUTPUT_FLAG_COMPRESS_OFFLOAD) &&
@@ -654,6 +665,10 @@ static void update_volumes(struct userdata *u) {
     } else {
         pa_log_debug("Using %s volume control with %s",
                      u->use_hw_volume ? "hardware" : "software", u->sink->name);
+    }
+    if (u->use_hw_voice_volume) {
+        pa_log_debug("Using %s voice volume control with %s",
+                     u->use_hw_voice_volume ? "hardware" : "software", u->sink->name);
     }
 
     if (u->use_hw_volume)
@@ -710,6 +725,26 @@ static pa_sink_input *find_volume_control_sink_input(struct userdata *u) {
     }
 
     return NULL;
+}
+
+static void sink_set_voice_volume_cb(pa_sink *s) {
+    struct userdata *u = s->userdata;
+    uint32_t idx;
+    pa_sink_input *i; // = find_volume_control_sink_input(u);
+
+    PA_IDXSET_FOREACH(i, u->sink->inputs, idx) {
+        if (strcmp(i->sink->active_port->name, "output-earpiece") == 0 ||
+             strcmp(i->sink->active_port->name, "output-speaker") == 0) {
+            break;
+        }
+    }
+
+    if (!i) {
+        pa_log_warn("No sink input found for voice volume.");
+        return;
+    }
+
+    set_voice_volume(u, i);
 }
 
 /* Called from main thread */
@@ -830,7 +865,9 @@ void pa_droid_sink_set_voice_control(pa_sink* sink, bool enable) {
 
         pa_assert(!u->sink_input_volume_changed_hook_slot);
 
-        if (u->use_hw_volume)
+        if (u->use_hw_volume && u->use_hw_voice_volume)
+            pa_sink_set_set_volume_callback(u->sink, sink_set_voice_volume_cb);
+        else if (u->use_hw_volume)
             pa_sink_set_set_volume_callback(u->sink, NULL);
 
         u->sink_input_volume_changed_hook_slot = pa_hook_connect(&u->core->hooks[PA_CORE_HOOK_SINK_INPUT_VOLUME_CHANGED],
