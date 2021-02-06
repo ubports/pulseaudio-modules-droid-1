@@ -865,7 +865,7 @@ void pa_droid_sink_set_voice_control(pa_sink* sink, bool enable) {
 
         pa_assert(!u->sink_input_volume_changed_hook_slot);
 
-        if (u->use_hw_volume && u->use_hw_voice_volume)
+        if (u->use_hw_voice_volume)
             pa_sink_set_set_volume_callback(u->sink, sink_set_voice_volume_cb);
         else if (u->use_hw_volume)
             pa_sink_set_set_volume_callback(u->sink, NULL);
@@ -891,7 +891,7 @@ void pa_droid_sink_set_voice_control(pa_sink* sink, bool enable) {
         pa_log_debug("Using %s volume control with %s",
                      u->use_hw_volume ? "hardware" : "software", u->sink->name);
 
-        if (u->use_hw_volume)
+        if (u->use_hw_volume || u->use_hw_voice_volume)
             pa_sink_set_set_volume_callback(u->sink, sink_set_volume_cb);
     }
 }
