@@ -125,6 +125,10 @@ typedef struct droid_parameter_mapping {
 /* sink-input properties */
 #define PROP_DROID_ROUTE "droid.device.additional-route"
 
+/* While the HAL interface supports until 0, android just use up to ~0.05
+ * Lower values can crash the modem or cause mixer issues */
+#define VOICE_VOLUME_MIN_VALUE                  0.05
+
 /* Voice call volume control.
  * With defaults defined below, whenever sink-input with proplist key "media.role" with
  * value "phone" connects to the sink AND voice volume control is enabled, that connected
@@ -625,6 +629,13 @@ static void set_voice_volume(struct userdata *u, pa_sink_input *i) {
     pa_sink_input_get_volume(i, &vol, true);
 
     val = pa_sw_volume_to_linear(pa_cvolume_avg(&vol));
+
+    /* Make sure our lower value is still HAL compatible */
+    if (val < VOICE_VOLUME_MIN_VALUE) {
+        val = VOICE_VOLUME_MIN_VALUE;
+        pa_log_debug("Forcing minimal voice volume to %f", val);
+    }
+
     pa_log_debug("Set voice volume %f", val);
 
     pa_droid_hw_module_lock(u->hw_module);
