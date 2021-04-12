@@ -41,11 +41,7 @@
 #include <droid/conversion.h>
 #include "droid-sink.h"
 
-#if ANDROID_VERSION_MAJOR == 9 && ANDROID_VERSION_MINOR == 0
-#include "module-droid-sink-28-symdef.h"
-#else
-#error Please add correct include for your "ANDROID_VERSION_*" combination
-#endif
+#include "module-symdef-compat.h"
 
 PA_MODULE_AUTHOR("Juho Hämäläinen");
 PA_MODULE_DESCRIPTION("Droid sink");

@@ -3,21 +3,44 @@
 
 DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
+ANDROID_API_VERSIONS := 24 28
+
 %:
 	dh $@ --with=autoreconf --parallel --fail-missing
 
+override_dh_clean:
+	for API in $(ANDROID_API_VERSIONS); do \
+		rm -rf debian/build-$$API debian/install-$$API; \
+	done
+	dh_clean
+
 override_dh_auto_configure:
-	dh_auto_configure -- --disable-static --with-module-dir=/usr/lib/pulse-8.0/modules
+	for API in $(ANDROID_API_VERSIONS); do \
+		mkdir -p debian/build-$$API debian/install-$$API; \
+		dh_auto_configure -B debian/build-$$API -- \
+			--disable-static \
+			--with-module-dir=/usr/lib/pulse-8.0/modules \
+			--with-android-headers=android-headers-$$API \
+			--with-module-suffix=$$API || exit $$?; \
+	done
+
+override_dh_auto_build:
+	for API in $(ANDROID_API_VERSIONS); do \
+		dh_auto_build -B debian/build-$$API || exit $$?; \
+	done
 
 override_dh_shlibdeps:
 	dh_shlibdeps --dpkg-shlibdeps-params=--ignore-missing-info -l/usr/lib/${DEB_HOST_MULTIARCH}/pulseaudio:/usr/lib/pulse-8.0/modules
 
 override_dh_auto_install:
-	dh_auto_install
+	for API in $(ANDROID_API_VERSIONS); do \
+		dh_auto_install -B debian/build-$$API --destdir debian/install-$$API || exit $$?; \
+		rm debian/install-$$API/usr/lib/pulse-8.0/modules/*.la; \
+	done
 
-	rm debian/tmp/usr/lib/pulse-8.0/modules/*.la
-
-	install -d debian/tmp/usr/include/pulsecore/modules/droid
-	install -m 644 src/common/*.h debian/tmp/usr/include/pulsecore/modules/droid
-	install -d debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/pkgconfig
-	install -m 644 src/common/*.pc debian/tmp/usr/lib/${DEB_HOST_MULTIARCH}/pkgconfig
+override_dh_install:
+	for API in $(ANDROID_API_VERSIONS); do \
+		dh_install --sourcedir=debian/install-$$API \
+			-ppulseaudio-modules-droid-$$API \
+			-ppulseaudio-modules-droid-$$API-dev  || exit $$?; \
+	done
